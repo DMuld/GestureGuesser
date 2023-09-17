@@ -53,7 +53,7 @@ class GUI(customtkinter.CTk):
         print("Cancelled New Mapping")
 
     def handleGestureChange(self, val1):
-        print("Gesture Changed")
+        print("Gesture Changed!")
 
     def handleMapChange(self, val1):
-        print("Map for Gesture Changed")
+        print("Map for Gesture Changed!")

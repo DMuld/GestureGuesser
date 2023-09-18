@@ -4,6 +4,7 @@ Commands to Install:
 ```
 pip install tkinter
 pip install customtkinter
+pip install opencv-python
 ```
 
 Command to Run:

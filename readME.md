@@ -1,12 +1,16 @@
-#Gesture Guesser
+# Gesture Guesser
 
-Commands to install:
+Commands to Install:
 ```
 pip install tkinter
 pip install customtkinter
 ```
 
-Command to run:
+Command to Run:
 ```
 py -3.10 main.py
 ```
+
+Important Links:
+https://pymotw.com/2/multiprocessing/communication.html
+https://customtkinter.tomschimansky.com/documentation

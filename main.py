@@ -1,20 +1,30 @@
+# from threading import Thread
+import multiprocessing
 from gui.gui import GUI
+from vision.vision import Vision
 
-# Starts the execution of the user interface
-def startGUI():
-    guiObj = GUI()
+# Starts the execution of the user interface I think the vision software will need to start that. 
+def startGUI(guiToVisionEvent):
+    guiObj = GUI(guiToVisionEvent)
     guiObj.mainloop()
 
-# def startVision():
+def startVision(visionToKBIEvent, guiToVisionEvent):
+    visionObj = Vision(visionToKBIEvent, guiToVisionEvent)
 
 
 # def startKBinput():
 
 
 # Starting procedure
-startgui = startGUI()
-# startvision = startVision()
-# startkbinput = startKBInput()
+if __name__ == '__main__':
+    visionToKBIEvent = multiprocessing.Event()
+    guiToVisionEvent = multiprocessing.Event()
+
+    
+    guiObj = multiprocessing.Process(name='guiObj', target=startGUI, args=(guiToVisionEvent,))
+    visionObj = multiprocessing.Process(name='visionObj', target=startVision, args=(visionToKBIEvent,guiToVisionEvent,))
+    guiObj.start()
+    visionObj.start()
 
 
 # Main loop

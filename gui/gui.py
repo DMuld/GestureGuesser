@@ -2,7 +2,7 @@ import tkinter
 import customtkinter
 
 class GUI(customtkinter.CTk):
-    def __init__(self):
+    def __init__(self, guiToVisionEvent):
         super().__init__()
         
         # Window

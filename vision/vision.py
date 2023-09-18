@@ -17,8 +17,8 @@ class Vision():
                 break
             if (cv2.waitKey(1) == ord('u')):
                 self.startUI()
-            if ():
-                
+            # if ():
+
             self.imageProcessing()
 
         self.stopVision(self.videocapture)

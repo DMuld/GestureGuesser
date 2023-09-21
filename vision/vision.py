@@ -73,7 +73,7 @@ class Vision():
                 while (not asyncFlag):
                     time.sleep(.01)
 
-                cv2.imshow('Hand Tracking', frame)
+                cv2.imshow('Gesture Guesser', frame)
 
                 asyncFlag = False
                 

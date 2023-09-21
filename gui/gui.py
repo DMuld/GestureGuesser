@@ -99,3 +99,4 @@ class GUI(customtkinter.CTk):
         print("Map for Gesture Changed!")
         print("Map", val1)
         self.defaultMap[self.gestures[2]] = val1
+        

@@ -5,4 +5,4 @@ from vision.vision import Vision
 
 # Starting procedure
 if __name__ == '__main__':
-    visionObj = Vision()
+    visionObj = Vision() 

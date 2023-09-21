@@ -1,23 +1,8 @@
-from gui.gui import GUI
+from vision.vision import Vision
 
-# Starts the execution of the user interface
-def startGUI():
-    guiObj = GUI()
-    guiObj.mainloop()
-
-# def startVision():
-
-
-# def startKBinput():
-
+# For testing, we should just have a command line function that will run tests. 
+# For run-time testing, if we could have another test that can run on a different process.
 
 # Starting procedure
-startgui = startGUI()
-# startvision = startVision()
-# startkbinput = startKBInput()
-
-
-# Main loop
-# is_running = True
-# while (is_running):
-    # this will stop when the KB does a command to stop the program.
+if __name__ == '__main__':
+    visionObj = Vision() 

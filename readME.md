@@ -24,3 +24,4 @@ Once you close the GUI, the vision software will start working again.
 To end the program click the vision software and press 'q'.
 
 Also, if you look at the top right of the vision page, it shows some built-in commands that we could possibly use if the finger tracker is too difficult to implement.
+

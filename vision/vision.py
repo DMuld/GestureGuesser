@@ -1,98 +1,143 @@
 import mediapipe as mp
 import cv2
 import time
-import math
-import numpy as np
-from typing import List, Mapping, Optional, Tuple, Union
 import dataclasses
 from gui.gui import GUI
+from collections import deque
 
+# Stolen from MediaPipe source code
 @dataclasses.dataclass
-class DrawingSpec:
-    # Color for drawing the annotation. Default to the white color.
-    color: Tuple[int, int, int] = (224, 224, 224)
-    # Thickness for drawing the annotation. Default to 2 pixels.
+class DrawingSpecs:
+    # Color for drawing the annotation. Default to the white color
+    color: (int, int, int) = (224, 224, 224)
+    # Thickness for drawing the annotation. Default to 2 pixels
     thickness: int = 2
-    # Circle radius. Default to 2 pixels.
+    # Circle radius. Default to 2 pixels
     circle_radius: int = 2
 
 class Vision():
     def __init__(self):
         super().__init__()
         self.visionMapping = {}
+
+        # Gets your video capture
         vid = cv2.VideoCapture(0)
-        
         if (not vid.isOpened()):
             print("Error: video capture not opened")
             exit()
 
+        # Options for constructing the gesture recognizer object
+        # "process_results" is the callback function for the async function "recognize_async"
+        # The callback function is where we can actually process the results
         options = mp.tasks.vision.GestureRecognizerOptions(
             base_options=mp.tasks.BaseOptions(model_asset_path='./vision/gesture_recognizer.task'),
             running_mode=mp.tasks.vision.RunningMode.LIVE_STREAM,
             result_callback=self.process_result)
         
+        # Construct the recognizer
         recognizer =  mp.tasks.vision.GestureRecognizer.create_from_options(options)
-        pTime = 0
-        cTime = 0
-        timeStamp = 0
+
+        # For the framerate calculating
+        frameStart = 0
+        frameEnd = 0
+
+        # This is an incrementing variable that needs to be passed to "recognize_async"
+        frameNumber = 0
+
+        # Current frame
         global frame
+
+        # Instructions to draw_landmarks on how to connect the dots
         global handConnections
         handConnections = mp.solutions.hands.HAND_CONNECTIONS
+
+        # Determined when the function has returned so we can actually draw to the frame
         global asyncFlag
         asyncFlag = False
+
+        # The queue of landmarks/coordinates collected when the user is doing a certain gesture
         global pointerTrail
-        pointerTrail = []
+        pointerTrail = deque()
+
+        # The current detected gesture
         global activeGesture
         activeGesture = "None"
+
+        # Creates window
         cv2.namedWindow("Gesture Guesser")
 
         # The loop that the vision uses.
         while (vid.isOpened()):
+            # Read the frame
             success, frame = vid.read()
 
             if success:
+                # Mirrors the image
                 frame = cv2.flip(frame, 1)
+                # Converts it from BGR to RGB
                 imgRGB = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                # Makes MediaPipe image object
                 image = mp.Image(image_format=mp.ImageFormat.SRGB, data=imgRGB)
-                recognizer.recognize_async(image, timeStamp)
-                timeStamp += 1
-                cTime = time.time()
-                fps = 1/(cTime-pTime)
-                pTime = cTime
+                # Starts the actual recognition. Results get passed to "process_results"
+                recognizer.recognize_async(image, frameNumber)
+
+                frameNumber += 1
+
+                # Get FPS and put it on the frame
+                frameEnd = time.time()
+                fps = 1/(frameEnd-frameStart)
+                frameStart = frameEnd
+                cv2.putText(frame, str(int(fps)), (10, 40), cv2.FONT_HERSHEY_PLAIN, 2, (0, 0, 255), 3)
+
+                # Instructions
                 cv2.putText(frame, "'q' to Exit", (10, 420), cv2.FONT_HERSHEY_PLAIN, 2, (0, 255, 0), 3)
                 cv2.putText(frame, "'u' for GUI", (10, 460), cv2.FONT_HERSHEY_PLAIN, 2, (0, 255, 0), 3)
-                cv2.putText(frame, str(int(fps)), (10, 40), cv2.FONT_HERSHEY_PLAIN, 2, (0, 0, 255), 3)
+
+                # Puts the active gesture on the frame
+                cv2.putText(frame, activeGesture, (10, 80), cv2.FONT_HERSHEY_PLAIN, 2, (0, 0, 255), 3)
+
+                # Creates instructions for draw_landmarks to connect the dots on the pointer trail
                 trailConnections = []
                 for i in range(1,len(pointerTrail)):
                     trailConnections.append((i-1, i))
 
-                self.draw_landmarks(frame, pointerTrail, trailConnections, landmark_drawing_spec=DrawingSpec(color=(0, 255, 0)))
-
-                cv2.putText(frame, activeGesture, (10, 80), cv2.FONT_HERSHEY_PLAIN, 2, (0, 0, 255), 3)
+                # Draws the pointer trail
+                self.draw_landmarks(frame, pointerTrail, trailConnections, landmark_drawing_spec=DrawingSpecs(color=(0, 255, 0)))
                 
+                # Makes sure process_results has finsished before we show the frame
                 while (not asyncFlag):
                     time.sleep(.01)
-
-                cv2.imshow('Gesture Guesser', frame)
-
                 asyncFlag = False
+
+                # Show the frame
+                cv2.imshow('Gesture Guesser', frame)
                 
                 # Reads the keyboard Input.
-                if cv2.waitKey(1) & 0xFF == ord('q'):
-                    print("Exit key 'q' pressed")
-                    break
-                if cv2.waitKey(1) & 0xFF == ord('u'):
-                    print("Starting the UI")
-                    guiObj = GUI()
-                    guiObj.mainloop()
-                    newMapping = guiObj.getMapping()
-                    if (newMapping != None):
-                        print("Vision Mapping Changed: ", newMapping)
-                        self.visionMapping = newMapping
+                key = cv2.waitKey(1)
+                if key:
+
+                    # https://stackoverflow.com/questions/35372700/whats-0xff-for-in-cv2-waitkey1
+                    key = key & 0xFF
+
+                    # If key = 'u' open the GUI
+                    if key == ord('u'):
+                        print("Starting the UI")
+                        guiObj = GUI()
+                        guiObj.mainloop()
+                        newMapping = guiObj.getMapping()
+                        if (newMapping != None):
+                            print("Vision Mapping Changed: ", newMapping)
+                            self.visionMapping = newMapping
+
+                    # If key = 'q' end the loop
+                    elif key == ord('q'):
+                        print("Exit key 'q' pressed")
+                        break
             else:
                 print("Error: frame reading not successful")
                 break
         
+        # Cleanup
         vid.release()
         cv2.destroyAllWindows()
 
@@ -104,79 +149,88 @@ class Vision():
     def process_image_to_map():
         print("Need to figure out a way to make ")
 
+    # Processes results. Gets called by recognize_async
     def process_result(self, result: mp.tasks.vision.GestureRecognizerResult, output_image: mp.Image, timestamp_ms: int):
+        # Get global variables
         global frame
+        global pointerTrail
+        global activeGesture
+        global asyncFlag
+
+        # If we have any landmarks, draw them
         if (len(result.hand_landmarks) > 0):
             for landmarkList in result.hand_landmarks:
                 self.draw_landmarks(frame, landmarkList, handConnections)
-        global pointerTrail
-        global activeGesture
-        if (len(result.gestures) > 0):
+        
+            # Check if the gesture is different, and if so, change activeGesture
             gesture = result.gestures[0][0].category_name
             if(gesture != activeGesture):
                 print("Active Gesture:", gesture)
                 activeGesture = gesture
+            
+            # If the gesture is pointing up, collect the landmark at the top of the pointer finger and put it into the array
             if (gesture == "Pointing_Up"):
+                # Index 8 represents the coordinates of the tip of the pointer finger
                 pointerTrail.append(result.hand_landmarks[0][8])
-                if (len(pointerTrail) > 15):
-                    pointerTrail.pop(0)
+                # If the queue is too long, remove the first element
+                if (len(pointerTrail) > 20):
+                    pointerTrail.popleft()
+            # If the active gesture is not pointing
             else:
                 if (len(pointerTrail) > 0):
-                    pointerTrail.pop(0)
+                    pointerTrail.popleft()
+
+        # If there is no detection whatsoever
         else:
             if (len(pointerTrail) > 0):
-                pointerTrail.pop(0)
+                pointerTrail.popleft()
+            # If the user quickly moves their hand off screen, the active gesture might still be something other than None
+            # If that's the case, set it to None
             if (activeGesture != "None"):
                 activeGesture = "None"
                 print("Active Gesture:", activeGesture)
-        global asyncFlag
+        # Mark our work as done so the main loop can continue
         asyncFlag = True
 
-    def draw_landmarks(
-        self,
-        image: np.ndarray,
-        landmark_list,
-        connections: Optional[List[Tuple[int, int]]] = None,
-        landmark_drawing_spec: Union[DrawingSpec, Mapping[int, DrawingSpec]] = DrawingSpec(color=(0, 0, 255)),
-        connection_drawing_spec: Union[DrawingSpec, Mapping[Tuple[int, int], DrawingSpec]] = DrawingSpec()):
-        if not landmark_list:
-            return
+    # Draws landmarks on the frame. From MediaPipe source code, but heavily modified
+    def draw_landmarks(self, image, landmark_list,
+        connections: [[(int, int)]] = None,
+        landmark_drawing_spec: DrawingSpecs = DrawingSpecs(color=(0, 0, 255)),
+        connection_drawing_spec: DrawingSpecs = DrawingSpecs()):
+
+        # Gets image dimensions
         image_rows, image_cols, _ = image.shape
-        idx_to_coordinates = {}
-        for idx, landmark in enumerate(landmark_list):
+
+        # Gets coordinates, converts them to pixel coordinates, and stores them in a dictionary
+        index_to_coordinates = {}
+        for index, landmark in enumerate(landmark_list):
             landmark_px = self.convertToPixelCoords(landmark.x, landmark.y, image_cols, image_rows)
-            if landmark_px:
-                idx_to_coordinates[idx] = landmark_px
+            index_to_coordinates[index] = landmark_px
+
+        # If there are instructions on drawing connections between the landmarks
         if connections:
-            num_landmarks = len(landmark_list)
             # Draws the connections if the start and end landmarks are both visible.
             for connection in connections:
-                start_idx = connection[0]
-                end_idx = connection[1]
-                if not (0 <= start_idx < num_landmarks and 0 <= end_idx < num_landmarks):
-                    raise ValueError(f'Landmark index is out of range. Invalid connection '
-                                    f'from landmark #{start_idx} to landmark #{end_idx}.')
-                if start_idx in idx_to_coordinates and end_idx in idx_to_coordinates:
-                    drawing_spec = connection_drawing_spec[connection] if isinstance(
-                        connection_drawing_spec, Mapping) else connection_drawing_spec
-                    cv2.line(image, idx_to_coordinates[start_idx],
-                            idx_to_coordinates[end_idx], drawing_spec.color,
-                            drawing_spec.thickness)
+                start_index = connection[0]
+                end_index = connection[1]
+                if start_index in index_to_coordinates and end_index in index_to_coordinates:
+                    cv2.line(image, index_to_coordinates[start_index],
+                            index_to_coordinates[end_index], connection_drawing_spec.color,
+                            connection_drawing_spec.thickness)
+                    
         # Draws landmark points after finishing the connection lines, which is aesthetically better.
-        if landmark_drawing_spec:
-            for idx, landmark_px in idx_to_coordinates.items():
-                drawing_spec = landmark_drawing_spec[idx] if isinstance(
-                    landmark_drawing_spec, Mapping) else landmark_drawing_spec
-                # White circle border
-                circle_border_radius = max(drawing_spec.circle_radius + 1,
-                                        int(drawing_spec.circle_radius * 1.2))
-                cv2.circle(image, landmark_px, circle_border_radius, (224, 224, 224),
-                        drawing_spec.thickness)
-                # Fill color into the circle
-                cv2.circle(image, landmark_px, drawing_spec.circle_radius,
-                        drawing_spec.color, drawing_spec.thickness)
+        for index, landmark_px in index_to_coordinates.items():
+            # White circle border
+            circle_border_radius = max(landmark_drawing_spec.circle_radius + 1,
+                                    int(landmark_drawing_spec.circle_radius * 1.2))
+            cv2.circle(image, landmark_px, circle_border_radius, (224, 224, 224),
+                    landmark_drawing_spec.thickness)
+            # Fill color into the circle
+            cv2.circle(image, landmark_px, landmark_drawing_spec.circle_radius,
+                    landmark_drawing_spec.color, landmark_drawing_spec.thickness)
                 
+    # Converts normalized coordinates (from 0-1) to pixel coordinates
     def convertToPixelCoords(self, normalized_x: float, normalized_y: float, image_width: int, image_height: int):
-        x_px = min(math.floor(normalized_x * image_width), image_width - 1)
-        y_px = min(math.floor(normalized_y * image_height), image_height - 1)
+        x_px = int(normalized_x * image_width)
+        y_px = int(normalized_y * image_height)
         return x_px, y_px

@@ -3,7 +3,9 @@ import cv2
 import time
 import dataclasses
 from gui.gui import GUI
+from keyboardinteraction.keyboardinteraction import KeyboardInteraction
 from collections import deque
+import pyautogui
 
 # Stolen from MediaPipe source code
 @dataclasses.dataclass
@@ -18,12 +20,14 @@ class DrawingSpecs:
 class Vision():
     def __init__(self):
         super().__init__()
-        self.visionMapping = {}
 
-        # Gets your video capture
-        vid = cv2.VideoCapture(0)
-        if (not vid.isOpened()):
-            print("Error: video capture not opened")
+        # Gets the default mapping
+        self.visionMapping = GUI.getDefaultMapping()
+
+        # Gets your video capture device
+        self.vid = cv2.VideoCapture(0)
+        if (not self.vid.isOpened()):
+            print("Error: video capture not detected")
             exit()
 
         # Options for constructing the gesture recognizer object
@@ -35,82 +39,101 @@ class Vision():
             result_callback=self.process_result)
         
         # Construct the recognizer
-        recognizer =  mp.tasks.vision.GestureRecognizer.create_from_options(options)
+        self.recognizer =  mp.tasks.vision.GestureRecognizer.create_from_options(options)
 
-        # For the framerate calculating
+        # Current frame
+        self.frame = None
+
+        # Instructions to draw_landmarks on how to connect the dots
+        self.handConnections = mp.solutions.hands.HAND_CONNECTIONS
+
+         # Determined when the function has returned so we can actually draw to the frame
+        self.asyncFlag = False
+
+        # The queue of landmarks/coordinates collected when the user is doing a certain gesture
+        self.pointerTrail = deque()
+
+        # These are the current landmarks that the recognizer has detected
+        self.currentLandmarks = []
+
+        # The current detected gesture and the last one. Used to detect when there is a change
+        self.activeGesture = "None"
+        self.lastActiveGesture = "None"
+
+        # Keyboard interaction class
+        self.keyboardInteract = KeyboardInteraction()
+
+    def mainloop(self):
+        # For the framerate calculation
         frameStart = 0
         frameEnd = 0
 
         # This is an incrementing variable that needs to be passed to "recognize_async"
         frameNumber = 0
 
-        # Current frame
-        global frame
-
-        # Instructions to draw_landmarks on how to connect the dots
-        global handConnections
-        handConnections = mp.solutions.hands.HAND_CONNECTIONS
-
-        # Determined when the function has returned so we can actually draw to the frame
-        global asyncFlag
-        asyncFlag = False
-
-        # The queue of landmarks/coordinates collected when the user is doing a certain gesture
-        global pointerTrail
-        pointerTrail = deque()
-
-        # The current detected gesture
-        global activeGesture
-        activeGesture = "None"
-
         # Creates window
         cv2.namedWindow("Gesture Guesser")
 
+        # Height and width of the screen
+        screenWidth, screenHeight = pyautogui.size()
+
         # The loop that the vision uses.
-        while (vid.isOpened()):
+        while (self.vid.isOpened()):
             # Read the frame
-            success, frame = vid.read()
+            success, self.frame = self.vid.read()
 
             if success:
                 # Mirrors the image
-                frame = cv2.flip(frame, 1)
+                self.frame = cv2.flip(self.frame, 1)
                 # Converts it from BGR to RGB
-                imgRGB = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                imgRGB = cv2.cvtColor(self.frame, cv2.COLOR_BGR2RGB)
                 # Makes MediaPipe image object
                 image = mp.Image(image_format=mp.ImageFormat.SRGB, data=imgRGB)
                 # Starts the actual recognition. Results get passed to "process_results"
-                recognizer.recognize_async(image, frameNumber)
+                self.recognizer.recognize_async(image, frameNumber)
 
+                # For async function
                 frameNumber += 1
 
                 # Get FPS and put it on the frame
                 frameEnd = time.time()
-                fps = 1/(frameEnd-frameStart)
+                fps = 1/(time.time()-frameStart)
                 frameStart = frameEnd
-                cv2.putText(frame, str(int(fps)), (10, 40), cv2.FONT_HERSHEY_PLAIN, 2, (0, 0, 255), 3)
+                cv2.putText(self.frame, str(int(fps)), (10, 40), cv2.FONT_HERSHEY_PLAIN, 2, (0, 0, 255), 3)
 
                 # Instructions
-                cv2.putText(frame, "'q' to Exit", (10, 420), cv2.FONT_HERSHEY_PLAIN, 2, (0, 255, 0), 3)
-                cv2.putText(frame, "'u' for GUI", (10, 460), cv2.FONT_HERSHEY_PLAIN, 2, (0, 255, 0), 3)
+                cv2.putText(self.frame, "'q' to Exit", (10, 420), cv2.FONT_HERSHEY_PLAIN, 2, (0, 255, 0), 3)
+                cv2.putText(self.frame, "'u' for GUI", (10, 460), cv2.FONT_HERSHEY_PLAIN, 2, (0, 255, 0), 3)
 
                 # Puts the active gesture on the frame
-                cv2.putText(frame, activeGesture, (10, 80), cv2.FONT_HERSHEY_PLAIN, 2, (0, 0, 255), 3)
+                cv2.putText(self.frame, self.activeGesture, (10, 80), cv2.FONT_HERSHEY_PLAIN, 2, (0, 0, 255), 3)
 
                 # Creates instructions for draw_landmarks to connect the dots on the pointer trail
                 trailConnections = []
-                for i in range(1,len(pointerTrail)):
+                for i in range(1,len(self.pointerTrail)):
                     trailConnections.append((i-1, i))
 
                 # Draws the pointer trail
-                self.draw_landmarks(frame, pointerTrail, trailConnections, landmark_drawing_spec=DrawingSpecs(color=(0, 255, 0)))
+                # self.draw_landmarks(self.frame, self.pointerTrail, trailConnections, landmark_drawing_spec=DrawingSpecs(color=(0, 255, 0)))
+
+                # See if we should do any keyboard interaction
+                self.processGestureToKeys(self.keyboardInteract)
+
+                # if (cv2.getWindowProperty("Gesture Guesser", 0) < 0):
+                #     print("Window closed. Exiting.")
+                #     break
+
+                if (len(self.currentLandmarks) > 0 and self.activeGesture == "Pointing_Up"):
+                    normalizedLocation = self.currentLandmarks[0][8]
+                    pyautogui.moveTo(normalizedLocation.x*screenWidth, normalizedLocation.y*screenHeight)
                 
                 # Makes sure process_results has finsished before we show the frame
-                while (not asyncFlag):
+                while (not self.asyncFlag):
                     time.sleep(.01)
-                asyncFlag = False
+                self.asyncFlag = False
 
                 # Show the frame
-                cv2.imshow('Gesture Guesser', frame)
+                cv2.imshow('Gesture Guesser', self.frame)
                 
                 # Reads the keyboard Input.
                 key = cv2.waitKey(1)
@@ -138,59 +161,58 @@ class Vision():
                 break
         
         # Cleanup
-        vid.release()
+        self.vid.release()
         cv2.destroyAllWindows()
 
-# 
-# 
-    # We need to find a way to process the green lines. 
-# 
-# 
-    def process_image_to_map():
-        print("Need to figure out a way to make ")
+    # Start processing the current gesture to keyboard inputs
+    def processGestureToKeys(self, keyboardInteract: KeyboardInteraction):
+        if (self.activeGesture != self.lastActiveGesture):
+            self.lastActiveGesture = self.activeGesture
+            try:
+                action = self.visionMapping[self.activeGesture]
+                keyboardInteract.processGesture(action)
+            except:
+                pass
 
     # Processes results. Gets called by recognize_async
     def process_result(self, result: mp.tasks.vision.GestureRecognizerResult, output_image: mp.Image, timestamp_ms: int):
-        # Get global variables
-        global frame
-        global pointerTrail
-        global activeGesture
-        global asyncFlag
+
+        self.currentLandmarks = result.hand_landmarks
 
         # If we have any landmarks, draw them
         if (len(result.hand_landmarks) > 0):
             for landmarkList in result.hand_landmarks:
-                self.draw_landmarks(frame, landmarkList, handConnections)
+                self.draw_landmarks(self.frame, landmarkList, self.handConnections)
         
             # Check if the gesture is different, and if so, change activeGesture
             gesture = result.gestures[0][0].category_name
-            if(gesture != activeGesture):
+            if(gesture != self.activeGesture):
                 print("Active Gesture:", gesture)
-                activeGesture = gesture
+                self.activeGesture = gesture
             
-            # If the gesture is pointing up, collect the landmark at the top of the pointer finger and put it into the array
+            # If the gesture is pointing up, collect the landmark at the top of the pointer finger and put it into the queue
             if (gesture == "Pointing_Up"):
                 # Index 8 represents the coordinates of the tip of the pointer finger
-                pointerTrail.append(result.hand_landmarks[0][8])
+                self.pointerTrail.append(result.hand_landmarks[0][8])
                 # If the queue is too long, remove the first element
-                if (len(pointerTrail) > 20):
-                    pointerTrail.popleft()
+                if (len(self.pointerTrail) > 20):
+                    self.pointerTrail.popleft()
             # If the active gesture is not pointing
             else:
-                if (len(pointerTrail) > 0):
-                    pointerTrail.popleft()
+                if (len(self.pointerTrail) > 0):
+                    self.pointerTrail.popleft()
 
         # If there is no detection whatsoever
         else:
-            if (len(pointerTrail) > 0):
-                pointerTrail.popleft()
+            if (len(self.pointerTrail) > 0):
+                self.pointerTrail.popleft()
             # If the user quickly moves their hand off screen, the active gesture might still be something other than None
             # If that's the case, set it to None
-            if (activeGesture != "None"):
-                activeGesture = "None"
-                print("Active Gesture:", activeGesture)
+            if (self.activeGesture != "None"):
+                self.activeGesture = "None"
+                print("Active Gesture:", self.activeGesture)
         # Mark our work as done so the main loop can continue
-        asyncFlag = True
+        self.asyncFlag = True
 
     # Draws landmarks on the frame. From MediaPipe source code, but heavily modified
     def draw_landmarks(self, image, landmark_list,
@@ -199,12 +221,12 @@ class Vision():
         connection_drawing_spec: DrawingSpecs = DrawingSpecs()):
 
         # Gets image dimensions
-        image_rows, image_cols, _ = image.shape
+        imageHeight, imageWidth, _ = image.shape
 
         # Gets coordinates, converts them to pixel coordinates, and stores them in a dictionary
         index_to_coordinates = {}
         for index, landmark in enumerate(landmark_list):
-            landmark_px = self.convertToPixelCoords(landmark.x, landmark.y, image_cols, image_rows)
+            landmark_px = self.convertToPixelCoords(landmark.x, landmark.y, imageWidth, imageHeight)
             index_to_coordinates[index] = landmark_px
 
         # If there are instructions on drawing connections between the landmarks
@@ -213,17 +235,15 @@ class Vision():
             for connection in connections:
                 start_index = connection[0]
                 end_index = connection[1]
-                if start_index in index_to_coordinates and end_index in index_to_coordinates:
-                    cv2.line(image, index_to_coordinates[start_index],
-                            index_to_coordinates[end_index], connection_drawing_spec.color,
-                            connection_drawing_spec.thickness)
+                cv2.line(image, index_to_coordinates[start_index],
+                        index_to_coordinates[end_index], connection_drawing_spec.color,
+                        connection_drawing_spec.thickness)
                     
         # Draws landmark points after finishing the connection lines, which is aesthetically better.
         for index, landmark_px in index_to_coordinates.items():
             # White circle border
-            circle_border_radius = max(landmark_drawing_spec.circle_radius + 1,
-                                    int(landmark_drawing_spec.circle_radius * 1.2))
-            cv2.circle(image, landmark_px, circle_border_radius, (224, 224, 224),
+            circle_border_radius = landmark_drawing_spec.circle_radius + 1
+            cv2.circle(image, landmark_px, circle_border_radius, (255, 255, 255),
                     landmark_drawing_spec.thickness)
             # Fill color into the circle
             cv2.circle(image, landmark_px, landmark_drawing_spec.circle_radius,
@@ -231,6 +251,6 @@ class Vision():
                 
     # Converts normalized coordinates (from 0-1) to pixel coordinates
     def convertToPixelCoords(self, normalized_x: float, normalized_y: float, image_width: int, image_height: int):
-        x_px = int(normalized_x * image_width)
-        y_px = int(normalized_y * image_height)
-        return x_px, y_px
+        x = int(normalized_x * image_width)
+        y = int(normalized_y * image_height)
+        return x, y

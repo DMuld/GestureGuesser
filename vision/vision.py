@@ -5,6 +5,7 @@ import dataclasses
 from gui.gui import GUI
 from keyboardinteraction.keyboardinteraction import KeyboardInteraction
 from collections import deque
+import pyautogui
 
 # Stolen from MediaPipe source code
 @dataclasses.dataclass
@@ -53,7 +54,7 @@ class Vision():
         self.pointerTrail = deque()
 
         # These are the current landmarks that the recognizer has detected
-        # self.currentLandmarks = []
+        self.currentLandmarks = []
 
         # The current detected gesture and the last one. Used to detect when there is a change
         self.activeGesture = "None"
@@ -74,7 +75,7 @@ class Vision():
         cv2.namedWindow("Gesture Guesser")
 
         # Height and width of the screen
-        # screenWidth, screenHeight = pyautogui.size()
+        screenWidth, screenHeight = pyautogui.size()
 
         # The loop that the vision uses.
         while (self.vid.isOpened()):
@@ -122,9 +123,9 @@ class Vision():
                 #     print("Window closed. Exiting.")
                 #     break
 
-                # if (len(self.currentLandmarks) > 0 and self.activeGesture == "Pointing_Up"):
-                #     normalizedLocation = self.currentLandmarks[0][8]
-                #     pyautogui.moveTo(normalizedLocation.x*screenWidth, normalizedLocation.y*screenHeight)
+                if (len(self.currentLandmarks) > 0 and self.activeGesture == "Pointing_Up"):
+                    normalizedLocation = self.currentLandmarks[0][8]
+                    pyautogui.moveTo(normalizedLocation.x*screenWidth, normalizedLocation.y*screenHeight)
                 
                 # Makes sure process_results has finsished before we show the frame
                 while (not self.asyncFlag):
@@ -176,7 +177,7 @@ class Vision():
     # Processes results. Gets called by recognize_async
     def process_result(self, result: mp.tasks.vision.GestureRecognizerResult, output_image: mp.Image, timestamp_ms: int):
 
-        # self.currentLandmarks = result.hand_landmarks
+        self.currentLandmarks = result.hand_landmarks
 
         # If we have any landmarks, draw them
         if (len(result.hand_landmarks) > 0):

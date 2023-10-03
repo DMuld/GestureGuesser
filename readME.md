@@ -6,6 +6,7 @@ pip install tkinter
 pip install customtkinter
 pip install opencv-python
 pip install mediapipe
+pip install pyautogui
 ```
 
 Command to Run:

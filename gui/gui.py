@@ -43,9 +43,18 @@ class GUI(customtkinter.CTk):
         self.maplabel = customtkinter.CTkLabel(self, text='Maps')
         self.maplabel.grid(row=1, column=6, columnspan=5, rowspan=1, sticky="ew")
 
+        # Gave a better name for the GUI, and removed the point up, as that is reserved for mouse movements.
         self.mappings = []
+        self.mappingsToName = {}
+        self.mappingsToName['Closed_Fist'] = "Closed Fist"
+        self.mappingsToName['Open_Palm'] = "Open Palm"
+        self.mappingsToName['Thumb_Down'] = "Thumb Down"
+        self.mappingsToName['Thumb_Up'] = "Thumb Up"
+        self.mappingsToName['Victory'] = "Peace Sign"
+        self.mappingsToName['ILoveYou'] = "I Love You"
+        self.gestures.remove('Pointing_Up')
         for i in range(len(self.gestures)):
-            label = customtkinter.CTkLabel(self.mapframe, text=self.gestures[i])
+            label = customtkinter.CTkLabel(self.mapframe, text=self.mappingsToName[self.gestures[i]])
             label.grid(row=i+2, column=1, padx=20, pady=20, columnspan=5, rowspan=1, sticky="ew")
             self.mappings.append(customtkinter.CTkOptionMenu(self.mapframe, values=self.maps, command=self.handleMapChange))
             self.mappings[i].grid(row=i+2, column=6, padx=20, pady=20, columnspan=5, rowspan=1, sticky="ew")

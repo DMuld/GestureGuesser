@@ -1,20 +1,20 @@
 import customtkinter
 
 class GUI(customtkinter.CTk):
-    def __init__(self):
+    def __init__(self, mapping):
         super().__init__()
 
         # Mappings
-        self.gestureToCommandMap = {}
-        self.gestures = ["Closed_Fist", "Open_Palm", "Pointing_Up",
-                         "Thumb_Down", "Thumb_Up",
-                         "Victory", "ILoveYou"]
-        self.maps = ["Do Nothing", "Left Mouse", "Right Mouse", "Alt+Tab", "Ctrl+C", "Ctrl+V", "Press Q"]
-        # self.defaultMap = {self.gestures[i]:self.maps[i] for i in range(len(self.gestures))}
-        self.defaultMap = GUI.getDefaultMapping()
+        self.gestures = ["Closed_Fist", "Open_Palm", "Thumb_Down",
+                         "Thumb_Up", "Victory", "ILoveYou"]
+        self.gestureLabels = ["Closed Fist", "Open Palm", "Thumb Down",
+                              "Thumb Up", "Victory", "I Love You"]
+        self.functions = ["Do Nothing", "Left Mouse", "Right Mouse", "Alt+Tab", "Ctrl+C",
+                          "Ctrl+V", "Press Q", "Press U", "Press Enter", "Press Windows"]
+        self.currentMapping = mapping
 
         # Window
-        self.title('Gesture Guesser')         #Rename this to the name of the project
+        self.title('Gesture Guesser') # Rename this to the name of the project
         self.geometry('1200x800')
         for i in range(12):
             self.grid_columnconfigure(i, weight=1)
@@ -45,47 +45,39 @@ class GUI(customtkinter.CTk):
 
         # Gave a better name for the GUI, and removed the point up, as that is reserved for mouse movements.
         self.mappings = []
-        self.mappingsToName = {}
-        self.mappingsToName['Closed_Fist'] = "Closed Fist"
-        self.mappingsToName['Open_Palm'] = "Open Palm"
-        self.mappingsToName['Thumb_Down'] = "Thumb Down"
-        self.mappingsToName['Thumb_Up'] = "Thumb Up"
-        self.mappingsToName['Victory'] = "Peace Sign"
-        self.mappingsToName['ILoveYou'] = "I Love You"
-        self.gestures.remove('Pointing_Up')
         for i in range(len(self.gestures)):
-            label = customtkinter.CTkLabel(self.mapframe, text=self.mappingsToName[self.gestures[i]])
+            label = customtkinter.CTkLabel(self.mapframe, text=self.gestureLabels[i])
             label.grid(row=i+2, column=1, padx=20, pady=20, columnspan=5, rowspan=1, sticky="ew")
-            self.mappings.append(customtkinter.CTkOptionMenu(self.mapframe, values=self.maps, command=self.handleMapChange))
+            self.mappings.append(customtkinter.CTkOptionMenu(self.mapframe, values=self.functions))
             self.mappings[i].grid(row=i+2, column=6, padx=20, pady=20, columnspan=5, rowspan=1, sticky="ew")
+            initialValue = self.currentMapping[self.gestures[i]]
+            self.mappings[i].set(initialValue)
 
     def getMapping(self):
-        return self.defaultMap
+        return self.currentMapping
     
     @staticmethod
     def getDefaultMapping():
         return {'Closed_Fist': 'Do Nothing',
                 'Open_Palm': 'Do Nothing',
-                'Pointing_Up': 'Do Nothing',
                 'Thumb_Down': 'Do Nothing',
                 'Thumb_Up': 'Do Nothing',
                 'Victory': 'Do Nothing',
                 'ILoveYou': 'Do Nothing'}
+    
+    def printMappings(self):
+        print('-'*26)
+        for i in range(len(self.gestures)):
+            print("%12s: %s" % (self.gestureLabels[i], self.currentMapping[self.gestures[i]]))
+        print('-'*26)
 
     def saveButton(self):    
-        print("Saved New Mapping")
-        print(self.defaultMap)
+        print("Saved New Mapping:")
+        for i in range(len(self.mappings)):
+            self.currentMapping[self.gestures[i]] = self.mappings[i].get()
+        self.printMappings()
         self.destroy()
 
     def cancelButton(self):
         print("Cancelled New Mapping")
-        self.destroy()
-        return None
-    
-    def handleMapChange(self, value):
-        print("Map for Gesture Changed!")
-        print("Map", value)
-        for i in range(len(self.mappings)):
-            if (value == self.mappings[i].get()):
-                self.defaultMap[self.gestures[i]] = value
-        
+        self.destroy()        

@@ -4,7 +4,7 @@ import time
 import dataclasses
 from gui.gui import GUI
 from keyboardinteraction.keyboardinteraction import KeyboardInteraction
-from collections import deque
+# from collections import deque
 import pyautogui
 
 # Stolen from MediaPipe source code
@@ -51,7 +51,7 @@ class Vision():
         self.asyncFlag = False
 
         # The queue of landmarks/coordinates collected when the user is doing a certain gesture
-        self.pointerTrail = deque()
+        # self.pointerTrail = deque()
 
         # These are the current landmarks that the recognizer has detected
         self.currentLandmarks = []
@@ -109,9 +109,9 @@ class Vision():
                 cv2.putText(self.frame, self.activeGesture, (10, 80), cv2.FONT_HERSHEY_PLAIN, 2, (0, 0, 255), 3)
 
                 # Creates instructions for draw_landmarks to connect the dots on the pointer trail
-                trailConnections = []
-                for i in range(1,len(self.pointerTrail)):
-                    trailConnections.append((i-1, i))
+                # trailConnections = []
+                # for i in range(1,len(self.pointerTrail)):
+                #     trailConnections.append((i-1, i))
 
                 # Draws the pointer trail
                 # self.draw_landmarks(self.frame, self.pointerTrail, trailConnections, landmark_drawing_spec=DrawingSpecs(color=(0, 255, 0)))
@@ -125,7 +125,7 @@ class Vision():
 
                 if (len(self.currentLandmarks) > 0 and self.activeGesture == "Pointing_Up"):
                     normalizedLocation = self.currentLandmarks[0][8]
-                    pyautogui.moveTo(normalizedLocation.x*screenWidth, normalizedLocation.y*screenHeight)
+                    pyautogui.moveTo(normalizedLocation.x*screenWidth, normalizedLocation.y*screenHeight, _pause=False)
                 
                 # Makes sure process_results has finsished before we show the frame
                 while (not self.asyncFlag):
@@ -144,13 +144,10 @@ class Vision():
 
                     # If key = 'u' open the GUI
                     if key == ord('u'):
-                        print("Starting the UI")
-                        guiObj = GUI()
+                        print("Starting the GUI")
+                        guiObj = GUI(self.visionMapping)
                         guiObj.mainloop()
-                        newMapping = guiObj.getMapping()
-                        if (newMapping != None):
-                            print("Vision Mapping Changed: ", newMapping)
-                            self.visionMapping = newMapping
+                        self.visionMapping = guiObj.getMapping()
 
                     # If key = 'q' end the loop
                     elif key == ord('q'):
@@ -177,6 +174,7 @@ class Vision():
     # Processes results. Gets called by recognize_async
     def process_result(self, result: mp.tasks.vision.GestureRecognizerResult, output_image: mp.Image, timestamp_ms: int):
 
+        # Set current hand landmarks
         self.currentLandmarks = result.hand_landmarks
 
         # If we have any landmarks, draw them
@@ -187,30 +185,29 @@ class Vision():
             # Check if the gesture is different, and if so, change activeGesture
             gesture = result.gestures[0][0].category_name
             if(gesture != self.activeGesture):
-                print("Active Gesture:", gesture)
+                if (gesture != "None"): print("%20s%s" % ("Gesture Detected: ", gesture))
                 self.activeGesture = gesture
             
-            # If the gesture is pointing up, collect the landmark at the top of the pointer finger and put it into the queue
-            if (gesture == "Pointing_Up"):
-                # Index 8 represents the coordinates of the tip of the pointer finger
-                self.pointerTrail.append(result.hand_landmarks[0][8])
-                # If the queue is too long, remove the first element
-                if (len(self.pointerTrail) > 20):
-                    self.pointerTrail.popleft()
-            # If the active gesture is not pointing
-            else:
-                if (len(self.pointerTrail) > 0):
-                    self.pointerTrail.popleft()
+            # # If the gesture is pointing up, collect the landmark at the top of the pointer finger and put it into the queue
+            # if (gesture == "Pointing_Up"):
+            #     # Index 8 represents the coordinates of the tip of the pointer finger
+            #     self.pointerTrail.append(result.hand_landmarks[0][8])
+            #     # If the queue is too long, remove the first element
+            #     if (len(self.pointerTrail) > 20):
+            #         self.pointerTrail.popleft()
+            # # If the active gesture is not pointing
+            # else:
+            #     if (len(self.pointerTrail) > 0):
+            #         self.pointerTrail.popleft()
 
         # If there is no detection whatsoever
         else:
-            if (len(self.pointerTrail) > 0):
-                self.pointerTrail.popleft()
+            # if (len(self.pointerTrail) > 0):
+            #     self.pointerTrail.popleft()
             # If the user quickly moves their hand off screen, the active gesture might still be something other than None
             # If that's the case, set it to None
             if (self.activeGesture != "None"):
                 self.activeGesture = "None"
-                print("Active Gesture:", self.activeGesture)
         # Mark our work as done so the main loop can continue
         self.asyncFlag = True
 

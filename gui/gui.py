@@ -1,7 +1,7 @@
 import customtkinter
 
 class GUI(customtkinter.CTk):
-    def __init__(self, mapping):
+    def __init__(self, mapping, keyboardInteraction, functions):
         super().__init__()
 
         # Mappings
@@ -9,9 +9,9 @@ class GUI(customtkinter.CTk):
                          "Thumb_Up", "Victory", "ILoveYou"]
         self.gestureLabels = ["Closed Fist", "Open Palm", "Thumb Down",
                               "Thumb Up", "Victory", "I Love You"]
-        self.functions = ["Do Nothing", "Left Mouse", "Right Mouse", "Alt+Tab", "Ctrl+C",
-                          "Ctrl+V", "Press Q", "Press U", "Press Enter", "Press Windows"]
+        self.functions = functions
         self.currentMapping = mapping
+        self.keyboardInteraction = keyboardInteraction
 
         # Window
         self.title('Gesture Guesser') # Rename this to the name of the project
@@ -43,6 +43,16 @@ class GUI(customtkinter.CTk):
         self.maplabel = customtkinter.CTkLabel(self, text='Maps')
         self.maplabel.grid(row=1, column=6, columnspan=5, rowspan=1, sticky="ew")
 
+        # Button and fields to save new keyboard function
+        self.funcsavebutton = customtkinter.CTkButton(self, text="Save New Function", command=self.saveFunction)
+        self.funcsavebutton.grid(row=10, column=1, padx=20, pady=20, columnspan=3, sticky="ew")
+        self.nametextbox = customtkinter.CTkTextbox(self, height=20)
+        self.nametextbox.grid(row=10, column=5, padx=20, pady=20, columnspan=3, sticky="ew")
+        self.nametextbox.insert('1.0', "Function Name")
+        self.commandtextbox = customtkinter.CTkTextbox(self, height=20)
+        self.commandtextbox.grid(row=10, column=8, padx=20, pady=20, columnspan=3, sticky="ew")
+        self.commandtextbox.insert('1.0', "Keyboard Command (Read readme.md)")
+
         # Gave a better name for the GUI, and removed the point up, as that is reserved for mouse movements.
         self.mappings = []
         for i in range(len(self.gestures)):
@@ -56,6 +66,9 @@ class GUI(customtkinter.CTk):
     def getMapping(self):
         return self.currentMapping
     
+    def getFunctions(self):
+        return self.functions
+    
     @staticmethod
     def getDefaultMapping():
         return {'Closed_Fist': 'Do Nothing',
@@ -64,6 +77,11 @@ class GUI(customtkinter.CTk):
                 'Thumb_Up': 'Do Nothing',
                 'Victory': 'Do Nothing',
                 'ILoveYou': 'Do Nothing'}
+    
+    @staticmethod
+    def getDefaultFunctions():
+        return ["Do Nothing", "Left Mouse", "Right Mouse", "Alt+Tab", "Ctrl+C",
+                "Ctrl+V", "Press Q", "Press U", "Press Enter", "Press Windows"]
     
     def printMappings(self):
         print('-'*26)
@@ -81,3 +99,21 @@ class GUI(customtkinter.CTk):
     def cancelButton(self):
         print("Cancelled New Mapping")
         self.destroy()        
+
+    def saveFunction(self):
+        functionName = self.nametextbox.get('1.0', customtkinter.END)
+        functionName = functionName[0 : -1]
+
+        functionCommand = self.commandtextbox.get('1.0', customtkinter.END)
+        functionCommand = functionCommand[0 : -1]
+
+        returnVal = self.keyboardInteraction.createNewFunction(functionName, functionCommand)
+
+        if (returnVal == -1):
+            print("Error: Could not add keyboard function")
+            return
+        
+        self.functions.append(functionName)
+
+        for mapping in self.mappings:
+            mapping.configure(values=self.functions)

@@ -14,9 +14,20 @@ class KeyboardInteraction():
                           "Do Nothing": self.do_nothing,
                           "Press Enter": self.press_enter,
                           "Press Windows": self.press_windows}
+        
+    def createNewFunction(self, functionName: str, functionCommand: str):
+
+        args = functionCommand.split('+')
+
+        def newKeyboardFunction():
+            print("Custom Command: '" + functionName + "'")
+            pyautogui.hotkey(args)
+            
+        self.functDict[functionName] = newKeyboardFunction
+        return 0
     
     def processGesture(self, action):
-        print("%20s" % ("Executing Action: "), end='')
+        print("%20s" % ("Executing: "), end='')
         self.functDict[action]()
 
     def alt_tab(self):

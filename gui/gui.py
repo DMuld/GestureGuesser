@@ -109,9 +109,10 @@ class GUI(customtkinter.CTk):
 
         returnVal = self.keyboardInteraction.createNewFunction(functionName, functionCommand)
 
-        if (returnVal == -1):
-            print("Error: Could not add keyboard function")
+        if (returnVal < 0):
             return
+        
+        print("Success: Added function '%s'" % functionName)
         
         self.functions.append(functionName)
 

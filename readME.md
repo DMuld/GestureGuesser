@@ -47,8 +47,6 @@ sudo pacman -S tk
 
 <b>USING THE CUSTOM KEYBOARD COMMAND FUNCTION:</b>
 
-DISCLAIMER: Right now there is no error checking (to be added). Any invalid input will not work, and will most likely NOT give an error message.
-
 To add a custom keyboard command, enter the command's name into the first text box.
 
 The keys to be pressed go in the second text box.

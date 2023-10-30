@@ -24,6 +24,9 @@ class Vision():
         # Gets the default mapping
         self.visionMapping = GUI.getDefaultMapping()
 
+        # Because we now have custom commands, we need to keep track of them
+        self.functions = GUI.getDefaultFunctions()
+
         # Gets your video capture device
         self.vid = cv2.VideoCapture(0)
         if (not self.vid.isOpened()):
@@ -145,9 +148,10 @@ class Vision():
                     # If key = 'u' open the GUI
                     if key == ord('u'):
                         print("Starting the GUI")
-                        guiObj = GUI(self.visionMapping)
+                        guiObj = GUI(self.visionMapping, self.keyboardInteract, self.functions)
                         guiObj.mainloop()
                         self.visionMapping = guiObj.getMapping()
+                        self.functions = guiObj.getFunctions()
 
                     # If key = 'q' end the loop
                     elif key == ord('q'):

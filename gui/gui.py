@@ -13,6 +13,7 @@ class GUI(customtkinter.CTk):
         self.functions = functions
         self.currentMapping = mapping
         self.keyboardInteraction = keyboardInteraction
+        self.isHelpful = False
 
         # Window
         self.title('Gesture Guesser') # Rename this to the name of the project
@@ -24,6 +25,8 @@ class GUI(customtkinter.CTk):
         # Widgets
         self.title = customtkinter.CTkLabel(self, text='Change the Gesture-Map (Vision will not work until GUI is closed)')
         self.title.grid(row=0, column=0, columnspan=12, rowspan=1, sticky="ew")
+        self.helpbutton = customtkinter.CTkButton(self, text='?', command=self.changeIsHelpful)
+        self.helpbutton.grid(row=0, column=10, columnspan=1, rowspan=1, sticky="w")
 
         # Buttons
         self.savebutton = customtkinter.CTkButton(self, text="Save and Close", command=self.saveButton)
@@ -98,6 +101,11 @@ class GUI(customtkinter.CTk):
     def getDefaultFunctions():
         return ["Do Nothing", "Left Mouse", "Right Mouse", "Alt+Tab", "Ctrl+C",
                 "Ctrl+V", "Press Q", "Press U", "Press Enter", "Press Windows"]
+
+    def changeIsHelpful(self):
+        self.isHelpful = not(self.isHelpful)
+        print(self.isHelpful)
+        return
     
     def printMappings(self):
         print('-'*26)

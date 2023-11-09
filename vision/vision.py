@@ -65,6 +65,9 @@ class Vision():
 
         # Keyboard interaction class
         self.keyboardInteract = KeyboardInteraction()
+        
+        # Pulls the old custom saved gestures maps.
+        self.retrieveOldFunctions()
 
     def mainloop(self):
         # For the framerate calculation
@@ -164,6 +167,20 @@ class Vision():
         # Cleanup
         self.vid.release()
         cv2.destroyAllWindows()
+    
+
+     # This still doesn't work. Not exactly sure why
+    def retrieveOldFunctions(self):
+        file = open("mapping-c.txt", "r")
+        tempObj = file.readlines()
+        if (tempObj != []):
+            tempObj = tempObj[0]
+            tempObj = tempObj.split("|")
+            for i in range(len(tempObj)-1):
+                temp = tempObj[i].split("~")
+                self.keyboardInteract.createNewFunction(str(temp[0]), str(temp[1]), False)
+                self.functions.append(str(temp[0])+"\n")
+        file.close()
 
     # Start processing the current gesture to keyboard inputs
     def processGestureToKeys(self, keyboardInteract: KeyboardInteraction):

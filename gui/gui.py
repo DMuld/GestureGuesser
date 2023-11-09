@@ -115,7 +115,7 @@ class GUI(customtkinter.CTk):
 
     def cancelButton(self):
         print("Cancelled New Mapping")
-        self.destroy()        
+        self.destroy()      
 
     def saveFunction(self):
         functionName = self.nametextbox.get('1.0', customtkinter.END)
@@ -124,8 +124,8 @@ class GUI(customtkinter.CTk):
         functionCommand = self.commandtextbox.get('1.0', customtkinter.END)
         functionCommand = functionCommand[0 : -1]
 
-        returnVal = self.keyboardInteraction.createNewFunction(functionName, functionCommand)
-
+        returnVal = self.keyboardInteraction.createNewFunction(functionName, functionCommand, True)
+        
         if (returnVal < 0):
             return
         

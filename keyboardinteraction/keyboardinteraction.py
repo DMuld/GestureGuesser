@@ -38,7 +38,7 @@ class KeyboardInteraction():
                             'up', 'volumedown', 'volumemute', 'volumeup', 'win', 'winleft', 'winright', 'yen',
                             'command', 'option', 'optionleft', 'optionright']
 
-    def createNewFunction(self, functionName: str, functionCommand: str):
+    def createNewFunction(self, functionName: str, functionCommand: str, doSave: bool):
 
         if functionName in self.functDict:
             print("Error: Function name already in use")
@@ -56,6 +56,16 @@ class KeyboardInteraction():
             pyautogui.hotkey(args)
 
         self.functDict[functionName] = newKeyboardFunction
+
+        # Stores the mappings to a file.
+        if (doSave == True):
+            file = open("mapping-c.txt", "a")
+            # Fix this to allow for the multi-step custom command
+            argRet = ""
+            for i in range(len(args)):
+                argRet = argRet+"+"+str(args[i])
+            file.write(functionName+"~"+argRet+"|")
+            file.close()
         return 0
 
     def processGesture(self, action):

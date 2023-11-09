@@ -1,4 +1,5 @@
 import customtkinter
+import json
 
 class GUI(customtkinter.CTk):
     def __init__(self, mapping, keyboardInteraction, functions):
@@ -71,12 +72,27 @@ class GUI(customtkinter.CTk):
     
     @staticmethod
     def getDefaultMapping():
+        # Read from a file, if it does not exist, then this is the default mapping.
+        file = open("mapping.txt", "r")
+        tempObj = file.readlines()
+        if tempObj != []:
+            res = tempObj[0].replace("'", '"')
+            res = json.loads(res)
+            return res
+        file.close()
         return {'Closed_Fist': 'Do Nothing',
                 'Open_Palm': 'Do Nothing',
                 'Thumb_Down': 'Do Nothing',
                 'Thumb_Up': 'Do Nothing',
                 'Victory': 'Do Nothing',
                 'ILoveYou': 'Do Nothing'}
+    
+    @staticmethod
+    def setDefaultMapping(mapObj):
+        file = open("mapping.txt", "w")
+        file.write(str(mapObj))
+        file.close()
+        return
     
     @staticmethod
     def getDefaultFunctions():
@@ -94,11 +110,12 @@ class GUI(customtkinter.CTk):
         for i in range(len(self.mappings)):
             self.currentMapping[self.gestures[i]] = self.mappings[i].get()
         self.printMappings()
+        self.setDefaultMapping(self.currentMapping)
         self.destroy()
 
     def cancelButton(self):
         print("Cancelled New Mapping")
-        self.destroy()        
+        self.destroy()      
 
     def saveFunction(self):
         functionName = self.nametextbox.get('1.0', customtkinter.END)
@@ -107,8 +124,8 @@ class GUI(customtkinter.CTk):
         functionCommand = self.commandtextbox.get('1.0', customtkinter.END)
         functionCommand = functionCommand[0 : -1]
 
-        returnVal = self.keyboardInteraction.createNewFunction(functionName, functionCommand)
-
+        returnVal = self.keyboardInteraction.createNewFunction(functionName, functionCommand, True)
+        
         if (returnVal < 0):
             return
         

@@ -79,3 +79,24 @@ As you can see, non character keys have special names. To find the names for all
 'up', 'volumedown', 'volumemute', 'volumeup', 'win', 'winleft', 'winright', 'yen',
 'command', 'option', 'optionleft', 'optionright']
 ```
+
+# Milestone Progression
+## Milestone 1
+This started with developing the baseline for the project. The project had the organization setup so that everyone would have their own place to work and reduce the overal number of merge errors that would occur. 
+
+During this stages the tools that would be used where also decided. It would use CustomTKinter for the GUI as it provided a good looking UI that could be made relatively quickly. For the image recognition and the ML library we chose Open-CV and media-pipe. These provided easy integration for our program, had good documentation, and some prebuilt gestures that we could utilize from the beginning. Pyautogui was used for the keyboard interface for our program. 
+
+## Milestone 2
+This is where the Image Recognition, the Keyboard Interface, and the GUI were all connected. This provided us with the ability to test out the application as whole and to think about useful features that should be added into these services to better improve the UX. 
+
+This Milestone also fixed some issues with the performace of the vision window. The 'mouse-move-gesture' feature would cause the framerate of the Image Recogntion to drop about 25% of the frames, which made the mouse movements feel unnatural.
+
+## Milestone 3
+Most of the issues bugs and nice to have features were added in this Milestone. Firstly, the ability to save the mappings for the users was added. This was a big improvement as everytime the program was started a user would need to re-map all of their gestures which was time consuming and annoying. 
+
+This Milestone allowed for the user to make Custom Macros with a gesture. More specifically, this feature allows users to map a single gesture to a list of user-specified actions. This would be beneficial for long repetitive tasks.  
+
+## Milestone 4
+This Milestone was mainly testing the software and reviewing the user experience of the software. The usability team works with individuals outside the team to ask what improvements should be made the GUI. This lead to the development of some small changes to the GUI. 
+
+The user-specified actions were also brought into the GUI so that a user would not need to open the GitHub README.md to figure out how to use the custom mappings. It should be provided by the user in the first place.
